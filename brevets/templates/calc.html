@@ -126,47 +126,73 @@
     var km = control.find("input[name='km']").val();
     var open_time_field = control.find("input[name='open']");
     var close_time_field = control.find("input[name='close']");
-    
-    $.getJSON(TIME_CALC_URL, { km: km }, 
-      // response handler
-      function(data) {
-         var times = data.result;
-         console.log("Got a response: " +  times);
-         console.log("Response.open = " + times.open);
-         open_time_field.val( moment(times.open).format("ddd M/D H:mm"));
-         close_time_field.val( moment(times.close).format("ddd M/D H:mm"));
-       } // end of handler function
-     );// End of getJSON
+    var notes = control.find("td.notes");
+
+    if ($.trim(km) === "") { //row cleared: clear its times
+      open_time_field.val("");
+      close_time_field.val("");
+      notes.html("&nbsp;");
+      return;
     }
+    
+    $.getJSON(TIME_CALC_URL, { 
+      km: km,
+        brevet_dist_km: $("#brevet_dist_km").val(),
+        begin_date: $("#begin_date").val(),
+        begin_time: $("#begin_time").val()
+      },
+      function(data) {
+        if (data.error) {
+          open_time_field.val("");
+          close_time_field.val("");
+          notes.text(data.error);
+          return;
+        }
+        var times = data.result;
+        open_time_field.val(moment.parseZone(times.open).format("ddd M/D H:mm"));
+        close_time_field.val(moment.parseZone(times.close).format("ddd M/D H:mm"));
+        notes.text(times.note || "");
+      })
+      .fail(function() {
+        notes.text("Could not reach the server");
+      });
+  }
+  //recalculate every row that has a distance
+  function recalc_all() {
+    $(".control").each(function() {
+      if ($.trim($(this).find("input[name='km']").val()) !== "") {
+        calc_times($(this));
+      }
+    });
+  }
 
   $(document).ready(function(){
    // Do the following when the page is finished loading
 
       $('input[name="miles"]').change(
-         function() {
-             var miles = parseFloat($(this).val());
-             var km = (1.609344 * miles).toFixed(1) ;
-             console.log("Converted " + miles + " miles to " + km + " kilometers");
-             var control_entry = $(this).parents(".control")
-             var target = control_entry.find("input[name='km']");
-             target.val( km );
-             // Then calculate times for this entry
-             calc_times(control_entry);
-          });
+        function() {
+          var control_entry = $(this).parents(".control");
+          var target = control_entry.find("input[name='km']");
+          var miles = parseFloat($(this).val());
+          target.val(isNaN(miles) ? "" : (1.609344 * miles).toFixed(1));
+          // Then calculate times for this entry
+          calc_times(control_entry);
+        });
 
       $('input[name="km"]').change(
-         function() {
-             var km = parseFloat($(this).val());
-             var miles = (0.621371 * km).toFixed(1) ;
-             console.log("Converted " + km + " km to " + miles + " miles");
-             var control_entry = $(this).parents(".control")
-             var target = control_entry.find("input[name='miles']");
-             target.val( miles );
-             // Then calculate times for this entry
-             calc_times(control_entry);
-          });
+        function() {
+          var control_entry = $(this).parents(".control");
+          var target = control_entry.find("input[name='miles']");
+          var km = parseFloat($(this).val());
+          target.val(isNaN(km) ? "" : (0.621371 * km).toFixed(1));
+          // Then calculate times for this entry
+          calc_times(control_entry);
+        });
+      
+      //changing the brevet or its start changes every control's times
+      $("#brevet_dist_km, #begin_date, #begin_time").change(recalc_all);
 
-     });   // end of what we do on document ready
+    });   // end of what we do on document ready
 
 </script>
 

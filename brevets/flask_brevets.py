@@ -44,6 +44,19 @@ def page_not_found(error):
 #   These return JSON, rather than rendering pages.
 #
 ###############
+
+def _parse_start(begin_date, begin_time):
+    """Combine the form's date and time fields into an Arrow object.
+    Browsers send the time as HH:mm, or HH:mm:ss if seconds are shown.
+    The time is taken as given, with no time zone conversion.
+    """
+    for fmt in ("YYYY-MM-DD HH:mm", "YYYY-MM-DD HH:mm:ss"):
+        try:
+            return arrow.get("{} {}".format(begin_date, begin_time), fmt)
+        except ValueError:  # arrow.ParserError is a ValueError
+            continue
+    raise ValueError("Start date/time is not valid")
+
 @app.route("/_calc_times")
 def _calc_times():
     """
@@ -51,15 +64,26 @@ def _calc_times():
     described at https://rusa.org/octime_alg.html.
     Expects one URL-encoded argument, the number of miles.
     """
-    app.logger.debug("Got a JSON request")
-    km = request.args.get('km', 999, type=float)
-    app.logger.debug("km={}".format(km))
     app.logger.debug("request.args: {}".format(request.args))
-    # FIXME: These probably aren't the right open and close times
-    # and brevets may be longer than 200km
-    open_time = acp_times.open_time(km, 200, arrow.now().isoformat)
-    close_time = acp_times.close_time(km, 200, arrow.now().isoformat)
-    result = {"open": open_time, "close": close_time}
+    km = request.args.get('km', None, type=float)
+    brevet_dist_km = request.args.get('brevet_dist_km', 200, type=int)
+    begin_date = request.args.get('begin_date', '')
+    begin_time = request.args.get('begin_time', '')
+ 
+    if km is None:
+        return flask.jsonify(error="Distance must be a number")
+    try:
+        start = _parse_start(begin_date, begin_time).isoformat()
+        open_time = acp_times.open_time(km, brevet_dist_km, start)
+        close_time = acp_times.close_time(km, brevet_dist_km, start)
+    except ValueError as err:
+        app.logger.debug("Rejected request: {}".format(err))
+        return flask.jsonify(error=str(err))
+ 
+    note = ""
+    if km > brevet_dist_km:
+        note = "Past {} km; finish times apply".format(brevet_dist_km)
+    result = {"open": open_time, "close": close_time, "note": note}
     return flask.jsonify(result=result)
 
 
