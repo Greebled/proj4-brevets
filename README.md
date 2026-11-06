@@ -5,8 +5,8 @@ A web replacement for the RUSA ACP control time calculator
 fills in each control's open and close times as you type, using Ajax calls
 to a Flask server.
  
-Author: Your Name, you@example.com
-Repository: your repo URL
+Author: Jasper Riggs, jasr@uoregon.edu
+Repository: https://github.com/Greebled/proj4-brevets.git
  
 ## Using the calculator
  
