@@ -149,8 +149,8 @@
           return;
         }
         var times = data.result;
-        open_time_field.val(moment.parseZone(times.open).format("ddd M/D H:mm"));
-        close_time_field.val(moment.parseZone(times.close).format("ddd M/D H:mm"));
+        open_time_field.val(moment(times.open.substring(0, 19)).format("ddd M/D H:mm"));
+        close_time_field.val(moment(times.close.substring(0, 19)).format("ddd M/D H:mm"));
         notes.text(times.note || "");
       })
       .fail(function() {
