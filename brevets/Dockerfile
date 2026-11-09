@@ -1,9 +1,12 @@
-FROM python:3
-MAINTAINER Ram Durairajan "noemail@website.domain"
-RUN apt-get update -y
-RUN apt-get install -y python3-pip python-dev build-essential
-COPY . /app
+FROM python:3.9-slim
+LABEL maintainer="Jasper Riggs <jasr@uoregon.edu>"
+
 WORKDIR /app
-RUN pip install -r requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+RUN chmod -x *.py
+
+EXPOSE 5000
 ENTRYPOINT ["python"]
 CMD ["flask_brevets.py"]
